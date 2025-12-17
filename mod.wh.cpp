@@ -26,7 +26,7 @@ Useful when you want to keep your current folder open while exploring the parent
 #include <UIAutomation.h>
 #include <OleAuto.h>
 #include <string>
-#include <atomic>  // you'll need this for #2 below
+#include <atomic>
 
 #ifndef ARRAYSIZE
 #define ARRAYSIZE(a) (sizeof(a)/sizeof((a)[0]))
@@ -91,8 +91,10 @@ static void CleanupThreadUia() {
 static void EnsureUiaForThisThread() {
     if (!t_comInit) {
         // UIA client prefers MTA
-        CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-        t_comInit = true;
+        HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+        if (SUCCEEDED(hr) || hr == RPC_E_CHANGED_MODE) {
+            t_comInit = true;
+        }
     }
     if (!t_uia) {
         if (SUCCEEDED(CoCreateInstance(CLSID_CUIAutomation, nullptr, CLSCTX_INPROC_SERVER,
@@ -131,16 +133,15 @@ static bool StartsWithI(const std::wstring& s, const wchar_t* prefix) {
 }
 
 static bool LooksLikeUp(const wchar_t* name, const wchar_t* autoId) {
-    // Check AutomationId first (language-independent)
-    if (autoId && (_wcsicmp(autoId, L"UpButton") == 0 || _wcsicmp(autoId, L"upButton") == 0))
+    // Check AutomationId first (language-independent, case-insensitive)
+    if (autoId && _wcsicmp(autoId, L"UpButton") == 0)
         return true;
 
-    // Check localized names (currently supports English and Swedish)
-    // Note: May need additional language support for other locales
-    if (name) {
-        if (StartsWithI(name, L"Up"))  return true;  // English
-        if (StartsWithI(name, L"Upp")) return true;  // Swedish
-    }
+    // Fallback: check localized Name property
+    // "Up" prefix covers English ("Up"), Swedish ("Upp"), etc.
+    if (name && StartsWithI(name, L"Up"))
+        return true;
+
     return false;
 }
 
@@ -301,12 +302,12 @@ static void DuplicateAndInvokeUp(HWND top) {
     }
 
     if (target) {
-        Wh_Log(L"DuplicateAndInvokeUp 1");
+        // Wh_Log(L"New window found, navigating up");
         ForceForeground(target);
         InvokeUpInWindow(target);
     } else {
-        // Best effort
-        Wh_Log(L"DuplicateAndInvokeUp 2");
+        // Fallback: try current foreground window
+        // Wh_Log(L"New window not found, trying foreground");
         HWND fg = GetForegroundWindow();
         if (IsExplorerTop(fg)) {
             ForceForeground(fg);
@@ -417,7 +418,7 @@ static LRESULT CALLBACK MouseLLProc(int code, WPARAM wp, LPARAM lp) {
         HWND hwndAtPt = WindowFromPoint(pt);
         HWND top = GetAncestor(hwndAtPt, GA_ROOT);
 
-        // Wh_Log(L"hwndAtPt: %d", hwndAtPt);
+        // Wh_Log(L"hwndAtPt: %p", hwndAtPt);
 
         if ((wp == WM_LBUTTONDOWN || wp == WM_MBUTTONDOWN) && IsExplorerTop(hwndAtPt)) {
             // Optimization: Avoid expensive UIA calls if not clicking near the top (toolbar)
