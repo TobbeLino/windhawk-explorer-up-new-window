@@ -7,6 +7,7 @@
 // @github          https://github.com/TobbeLino/windhawk-explorer-up-new-window
 // @include         explorer.exe
 // @compilerOptions -lole32 -loleaut32 -luiautomationcore -lshell32 -luser32 -luuid
+// @license         MIT
 // ==/WindhawkMod==
 
 // ==WindhawkModReadme==
