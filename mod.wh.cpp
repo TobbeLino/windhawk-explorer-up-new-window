@@ -2,7 +2,7 @@
 // @id              explorer-up-new-window
 // @name            Explorer Up → New Window (Ctrl-click or Middle-click)
 // @description     Ctrl or middle-click on explorer up-button opens parent in a new window.
-// @version         1.0.9
+// @version         1.1
 // @author          Tobias Lind (TobbeLino)
 // @github          https://github.com/TobbeLino/windhawk-explorer-up-new-window
 // @include         explorer.exe
