@@ -3,7 +3,7 @@
 // @name            Explorer Up → New Window (Ctrl-click or Middle-click)
 // @description     Ctrl or middle-click on explorer up-button opens parent in a new window.
 // @version         1.1
-// @author          Tobias Lind (TobbeLino)
+// @author          Tobias Lind
 // @github          https://github.com/TobbeLino
 // @include         explorer.exe
 // @compilerOptions -lole32 -loleaut32 -luiautomationcore -lshell32 -luser32 -luuid
