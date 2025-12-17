@@ -1,0 +1,85 @@
+---
+description: Windhawk module for enhancing Windows Explorer's Up button
+globs: ["*.cpp", "*.wh.cpp"]
+---
+
+# Explorer Up → New Window
+
+## Project Overview
+
+This is a **Windhawk module** that enhances the Windows Explorer "Up" button in the toolbar. Windhawk is a customization tool that injects code into Windows applications.
+
+## What It Does
+
+Opens the parent folder in a **new Explorer window** when:
+- **Ctrl + Left-click** on the Up button
+- **Middle-click** on the Up button
+- **Ctrl + Alt + Up** keyboard shortcut
+
+## Technical Architecture
+
+### Core Technologies
+- **Windows Low-Level Hooks**: `WH_MOUSE_LL` and `WH_KEYBOARD_LL` for input interception
+- **UI Automation (UIA)**: Detects clicks on the "Up" button via `AutomationId` or localized `Name`
+- **COM**: Required for UIA, initialized per-thread with `COINIT_MULTITHREADED`
+
+### Key Implementation Details
+
+1. **Up Button Detection**: Checks `AutomationId == "UpButton"` or `Name` starting with "Up"/"Upp" (Swedish)
+2. **Action Sequence**:
+   - `Ctrl+N` → duplicates current window
+   - Wait for new window (up to 700ms)
+   - `Alt+Up` → navigates to parent folder
+3. **Thread Safety**: Thread-local COM/UIA state, atomic progress flag
+4. **Debouncing**: 200ms between clicks, 1s cooldown after middle-click
+
+### File Structure
+- `mod.wh.cpp` - Main module source (this is what Windhawk compiles)
+- `explorer-up-new-window.cpp` - Possibly an older/alternative version
+
+## Windhawk Module Format
+
+```cpp
+// ==WindhawkMod==
+// @id              unique-mod-id
+// @name            Human Readable Name
+// @description     Description of what the mod does
+// @version         1.0.0
+// @author          Author Name
+// @include         target-process.exe
+// @compilerOptions -lole32 -loleaut32 ...
+// ==/WindhawkMod==
+```
+
+### Required Entry Points
+- `BOOL Wh_ModInit()` - Called when mod loads
+- `void Wh_ModUninit()` - Called when mod unloads
+- `void Wh_ModSettingsChanged()` - Called when settings change
+
+### Windhawk API
+- `Wh_Log(L"format", ...)` - Logging function (visible in Windhawk's log viewer)
+
+## Build Requirements
+
+Compiler options (linked libraries):
+- `-lole32` - COM base
+- `-loleaut32` - OLE Automation
+- `-luiautomationcore` - UI Automation
+- `-lshell32` - Shell functions
+- `-luser32` - Windows USER API
+- `-luuid` - UUID/GUID support
+
+## Debugging Tips
+
+1. Use `Wh_Log()` for debug output (viewable in Windhawk's log panel)
+2. Test with different Explorer windows and folder depths
+3. Watch for timing issues - keyboard/focus state can be tricky
+4. COM must be initialized on each thread that uses UIA
+
+## Localization
+
+Currently supports:
+- English: "Up"
+- Swedish: "Upp"
+
+To add more languages, extend `LooksLikeUp()` function with additional name prefixes.
