@@ -1,6 +1,3 @@
-.clang-format
-compile_flags.txt
 compiler_errors.log
 compiler_output.log
-explorer-up-new-window.cpp
-.vscode/settings.json
+

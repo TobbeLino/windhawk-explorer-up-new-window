@@ -3,13 +3,21 @@
 // @name            Explorer Up → New Window (Ctrl-click or Middle-click)
 // @description     Ctrl or middle-click on explorer up-button opens parent in a new window.
 // @version         1.0.9
-// @author          You
+// @author          TobbeLino
 // @include         explorer.exe
 // @compilerOptions -lole32 -loleaut32 -luiautomationcore -lshell32 -luser32 -luuid
 // ==/WindhawkMod==
 
 // ==WindhawkModReadme==
 /*
+# Explorer Up → New Window
+
+Opens the parent folder in a **new** Explorer window when you:
+- **Middle-click** on the Up button
+- **Ctrl + Left-click** on the Up button
+- Press **Ctrl + Alt + Up** keyboard shortcut
+
+Useful when you want to keep your current folder open while exploring the parent.
 */
 // ==/WindhawkModReadme==
 

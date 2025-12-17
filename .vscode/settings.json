@@ -1,0 +1,8 @@
+{
+    "workbench.editor.showTabs": "multiple",
+    "workbench.statusBar.visible": true,
+    "windhawk.editedModId": "explorer-up-new-window",
+    "windhawk.editedModWasModified": false,
+    "git.enabled": true,
+    "workbench.activityBar.location": "hidden"
+}
