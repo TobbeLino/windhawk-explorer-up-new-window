@@ -7,7 +7,7 @@ globs: ["*.cpp", "*.wh.cpp"]
 
 ## Project Overview
 
-This is a **Windhawk module** that enhances the Windows Explorer "Up" button in the toolbar. Windhawk is a customization tool that injects code into Windows applications.
+This is a **Windhawk "tool mod"** that enhances the Windows Explorer "Up" button in the toolbar. Unlike regular Windhawk mods that inject into target processes, this mod runs in a **dedicated `windhawk.exe` process** for better isolation and shell stability.
 
 ## What It Does
 
@@ -18,46 +18,60 @@ Opens the parent folder in a **new Explorer window** when:
 
 ## Technical Architecture
 
+### Tool Mod Pattern
+
+This mod uses the ["Mods as tools" pattern](https://github.com/ramensoftware/windhawk/wiki/Mods-as-tools:-Running-mods-in-a-dedicated-process):
+
+1. **Target**: `windhawk.exe` (not `explorer.exe`)
+2. **Launcher**: First instance spawns a dedicated process with `-tool-mod "mod-id"`
+3. **Tool process**: Runs the actual mod logic in isolation
+4. **Mutex**: Prevents multiple instances
+
+Benefits:
+- Shell stability (crashes don't affect Explorer)
+- Works correctly with multiple Explorer processes
+- Cleaner architecture for global-hook-based mods
+
 ### Core Technologies
-- **Windows Low-Level Hooks**: `WH_MOUSE_LL` and `WH_KEYBOARD_LL` for input interception
-- **UI Automation (UIA)**: Detects clicks on the "Up" button via `AutomationId` or localized `Name`
+- **Windows Low-Level Hooks**: `WH_MOUSE_LL` and `WH_KEYBOARD_LL` (global, work from any process)
+- **UI Automation (UIA)**: Cross-process detection of "Up" button via `AutomationId` or localized `Name`
 - **COM**: Required for UIA, initialized per-thread with `COINIT_MULTITHREADED`
+- **Dedicated Hook Thread**: LL hooks require a message pump
 
 ### Key Implementation Details
 
-1. **Up Button Detection**: Checks `AutomationId == "UpButton"` or `Name` starting with "Up"/"Upp" (Swedish)
+1. **Up Button Detection**: Checks `AutomationId == "UpButton"` or `Name` starting with "Up"
 2. **Action Sequence**:
    - `Ctrl+N` → duplicates current window
    - Wait for new window (up to 700ms)
    - `Alt+Up` → navigates to parent folder
 3. **Thread Safety**: Thread-local COM/UIA state, atomic progress flag
-4. **Debouncing**: 200ms between clicks, 1s cooldown after middle-click
+4. **Debouncing**: 200ms between clicks, 1s cooldown after activation
+5. **Hook Thread**: Dedicated thread with message loop for LL hooks
 
 ### File Structure
-- `mod.wh.cpp` - Main module source (this is what Windhawk compiles)
-- `explorer-up-new-window.cpp` - Possibly an older/alternative version
+- `explorer-up-new-window.wh.cpp` - Main module source (Windhawk compiles this)
 
-## Windhawk Module Format
+## Code Structure
 
-```cpp
-// ==WindhawkMod==
-// @id              unique-mod-id
-// @name            Human Readable Name
-// @description     Description of what the mod does
-// @version         1.0.0
-// @author          Author Name
-// @include         target-process.exe
-// @compilerOptions -lole32 -loleaut32 ...
-// ==/WindhawkMod==
-```
+### Entry Points (Tool Mod)
 
-### Required Entry Points
-- `BOOL Wh_ModInit()` - Called when mod loads
-- `void Wh_ModUninit()` - Called when mod unloads
-- `void Wh_ModSettingsChanged()` - Called when settings change
+The mod has two layers:
+
+**Tool Mod Infrastructure** (standard boilerplate):
+- `Wh_ModInit()` - Detects launcher vs tool process, spawns dedicated process
+- `Wh_ModAfterInit()` - Launcher spawns the tool process
+- `Wh_ModUninit()` - Calls tool uninit then exits process
+- `Wh_ModSettingsChanged()` - Forwards to tool
+
+**Actual Mod Logic**:
+- `WhTool_ModInit()` - Sets up hook thread with message pump
+- `WhTool_ModUninit()` - Signals hook thread to exit, waits for cleanup
+- `WhTool_ModSettingsChanged()` - Currently no settings
 
 ### Windhawk API
-- `Wh_Log(L"format", ...)` - Logging function (visible in Windhawk's log viewer)
+- `Wh_Log(L"format", ...)` - Logging (visible in Windhawk's log panel)
+- `Wh_SetFunctionHook()` - Used to hook entry point (part of tool mod pattern)
 
 ## Build Requirements
 
@@ -65,21 +79,22 @@ Compiler options (linked libraries):
 - `-lole32` - COM base
 - `-loleaut32` - OLE Automation
 - `-luiautomationcore` - UI Automation
-- `-lshell32` - Shell functions
+- `-lshell32` - Shell functions (CommandLineToArgvW)
 - `-luser32` - Windows USER API
 - `-luuid` - UUID/GUID support
 
 ## Debugging Tips
 
 1. Use `Wh_Log()` for debug output (viewable in Windhawk's log panel)
-2. Test with different Explorer windows and folder depths
-3. Watch for timing issues - keyboard/focus state can be tricky
-4. COM must be initialized on each thread that uses UIA
+2. The mod runs in a separate `windhawk.exe` process - check Task Manager
+3. Test with different Explorer windows and folder depths
+4. Watch for timing issues - keyboard/focus state can be tricky
+5. COM must be initialized on each thread that uses UIA
 
 ## Localization
 
-Currently supports:
-- English: "Up"
-- Swedish: "Upp"
+Up button detection supports any language where the button name starts with "Up" (case-insensitive). This covers:
+- English: "Up to..."
+- Swedish: "Upp till..."
 
-To add more languages, extend `LooksLikeUp()` function with additional name prefixes.
+The `AutomationId` check ("UpButton") is language-independent and preferred.
