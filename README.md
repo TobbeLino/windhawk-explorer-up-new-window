@@ -8,3 +8,7 @@ Opens the parent folder in a **new** Explorer window when:
 - Middle-click on the Up button
 - Ctrl + Left-click on the Up button
 - Ctrl + Alt + Up keyboard shortcut
+
+## Settings
+
+ **Open in**: Choose whether to open the parent folder in a new **Window** or a new **Tab**

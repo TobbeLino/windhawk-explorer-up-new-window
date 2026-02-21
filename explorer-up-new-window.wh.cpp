@@ -21,9 +21,7 @@ Opens the parent folder in a **new** Explorer window or tab when you:
 
 Useful when you want to keep your current folder open while exploring the parent.
 
-## Settings
 
-- **Open in**: Choose whether to open the parent folder in a new **Window** or a new **Tab**
 */
 // ==/WindhawkModReadme==
 
